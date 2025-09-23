@@ -3,17 +3,21 @@
 from transformers import pipeline
 import torch
 import sys
+import argparse
+import importlib
 
+# Пытаемся импортировать transformers динамически
 try:
-    import transformers
+    transformers = importlib.import_module("transformers")
     required_version = "4.34"
     current_version = transformers.__version__
 
-    # Сравниваем версии: если текущая < требуемой — ошибка
+    # Сравниваем версии
     if tuple(map(int, current_version.split('.')[:2])) < tuple(map(int, required_version.split('.'))):
         print(f"Требуется transformers>={required_version}, у вас {current_version}")
         print("Обновите: pip install --upgrade transformers")
         sys.exit(1)
+
 except ImportError:
     print("Библиотека 'transformers' не установлена!")
     print("Установите: pip install transformers torch")
@@ -21,23 +25,31 @@ except ImportError:
 
 
 def initialize_generator(model):
-    """Создание pipeline генерации текста с указанной моделью"""
+    """Создание pipeline генерации текста с указанной моделью
+    Args: model (str). Название модели.
+    Returns: Pipeline or None."""
     if not isinstance(model, str) or not model.strip():
         raise ValueError("'model' должен быть непустой строкой!")
 
     dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-
-    generator = pipeline(
-        "text-generation",
-        model=model,
-        device_map="auto",  # Автоматически выберет CPU или GPU
-        dtype=dtype
-    )
-    return generator
+    try:
+        generator = pipeline(
+            "text-generation",
+            model=model,
+            device_map="auto",  # Автоматически выберет CPU или GPU
+            dtype=dtype
+        )
+        return generator
+    except Exception as e:
+        print(f"Не удалось загрузить модель '{model}': {e}")
+        print("Возможные причины: нет интернета, мало памяти, ошибка совместимости.")
+        return None
 
 
 def chat_prompt(prompt):
-    """Форматирование текстового запроса в формат чата для инструктивных моделей"""
+    """Форматирование текстового запроса в формат чата для инструктивных моделей
+    Args: prompt (str). Текстовый запрос пользователя.
+    Returns: messages (list[dict]). Список с одним сообщением от пользователя"""
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("'prompt' должен быть непустой строкой!")
 
@@ -50,7 +62,16 @@ def chat_prompt(prompt):
 
 # Генерируем историю
 def generate_text(generator, messages, max_new_tokens, do_sample, temperature, top_p, repetition_penalty):
-    """Генерация текста с заданными параметрами. Возвращает последний ответ ассистента"""
+    """Генерация текста с заданными параметрами.
+    Args:
+        generator (pipeline): Инициализированный pipeline.
+        messages (list[dict]): Сообщения в формате чата.
+        max_new_tokens (int): Макс. количество новых токенов.
+        do_sample (bool): Использовать ли сэмплирование.
+        temperature (float): Температура генерации.
+        top_p (float): Параметр ядра для разнообразия.
+        repetition_penalty (float): Штраф за повторы.
+    Returns: Сгенерированный текст."""
     if not isinstance(max_new_tokens, int) or max_new_tokens <= 0:
         raise ValueError("'max_new_tokens' должен быть положительным целым числом!")
     if not isinstance(do_sample, bool):
@@ -89,10 +110,18 @@ def generate_text(generator, messages, max_new_tokens, do_sample, temperature, t
 
 
 def main():
-    """Это основная функция. Она инициализирует генератор, формирует запрос и выводит результат"""
-    model = "Qwen/Qwen2-1.5B-Instruct"
-    prompt = "Напиши историю, используя слова: картошка, наушники, бегать, воздушный"
+    """Это основная функция. Она инициализирует модель, генерирует историю, сохраняет в файл"""
 
+    parser = argparse.ArgumentParser(description="Генератор истории по заданному промпту")
+    parser.add_argument("--prompt", type=str, help="Текстовый запрос для генерации истории")
+    args = parser.parse_args()
+
+    if args.prompt is None:
+        prompt = "Напиши историю, используя слова: лес, волк, дом"
+    else:
+        prompt = args.prompt
+
+    model = "Qwen/Qwen2-1.5B-Instruct"
     max_new_tokens = 400        # Ограничение длины
     do_sample = True            # Случайность для креативности
     temperature = 0.7           # Баланс: 0.7 - не слишком хаотично, не слишком скучно
@@ -108,6 +137,17 @@ def main():
     print("=== СГЕНЕРИРОВАННАЯ ИСТОРИЯ ===")
     print(story)
 
+    output_file = "output.txt"
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(story)
+        print(f"\nИстория успешно сохранена в файл: {output_file}")
+    except PermissionError:
+        print(f"\nОшибка: Нет прав на запись в файл '{output_file}'.")
+    except OSError as e:
+        print(f"\nОшибка при записи в файл: {e}")
+    except Exception as e:
+        print(f"\nНеизвестная ошибка при сохранении: {e}")
 
 if __name__ == "__main__":
     main()
