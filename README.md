@@ -13,13 +13,13 @@ GenAI-2-17/
 ```
 
 ## Модули
-```generator.py```
+### generator.py
 Файл-основа реализации из [GenAI-1-17](https://github.com/Kata9872/GenAI-1-17)
 - ```initialize_generator(model)``` - Создание pipeline генерации текста с указанной моделью
 - ```chat_prompt(prompt)``` - Форматирование текстового запроса в формат чата для инструктивных моделей
 - ```def generate_text(generator, messages, max_new_tokens, do_sample, temperature, top_p, repetition_penalty)``` - Генерация текста с заданными параметрами
 
-```adj_generator.py```
+### adj_generator.py
 - ```count_mentions(text, word)``` - Считает количество упоминаний слова в тексте (регистронезависимо)
 - ```generate_and_check(prompt, model)``` - Генерирует историю и проверяет количество упоминаний слова "Волк"
 
