@@ -30,7 +30,7 @@ GenAI-2-17/
    pip install -r requirements.txt
 2. Запустите скрипт:
    ```bash
-   python main.py--prompt "Напиши историю про волка, использовав слово 'Волк' 3 раза"
+   python adj_generator.py--prompt "Напиши историю про волка, использовав слово 'Волк' 3 раза"
    ```
 
 Вы так же можете скорректировать некоторые параметры под свои нужды. Такие как например model, max_new_tokens и др.
@@ -46,7 +46,7 @@ top_p=0.9,
 repetition_penalty=1.3
 ```
 ```bash
-python main.py --prompt "Напиши историю про волка, использовав слово "Волк" 3 раза"
+python adj_generator.py --prompt "Напиши историю про волка, использовав слово "Волк" 3 раза"
 ```
 output.txt:
 ```
